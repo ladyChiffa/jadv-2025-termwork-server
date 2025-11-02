@@ -20,9 +20,9 @@ public class ClientChat {
                 BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream())
         ) {
             out.write((
-                    "Привет, подключение к чату установлено!\r\n" +
-                            "* представьтесь командой /hello т/и\r\n" +
-                            "* попрощайтесь командой /exit\r\n"
+                    "Привет, подключение к чату установлено!~" +
+                            "* представьтесь командой /hello т/и~" +
+                            "* попрощайтесь командой /exit~\r\n"
             ).getBytes());
             out.flush();
 
@@ -31,6 +31,13 @@ public class ClientChat {
             while(true) {
                 LocalDateTime dt = LocalDateTime.now();
                 Request request = new Request(in);
+
+                if (request.command == null ) continue; // прислали пустую строку
+
+                System.out.println("CHAT перед командой");
+                System.out.println("DT PREV: " + dt_last);
+                System.out.println(chatlog.toString());
+
                 if (request.command.equals("/hello")) {
                     if (name == null) {
                         chatlog.add(0, "server", dt, "К чату присоединился " + request.text);
@@ -49,6 +56,7 @@ public class ClientChat {
                 } else if (request.command.equals("/poll")) {
                     String newMessages = chatlog.getFromDt(dt_last, id);
                     dt_last = dt;
+                    newMessages += "\n";
                     out.write((
                             newMessages
                     ).getBytes());

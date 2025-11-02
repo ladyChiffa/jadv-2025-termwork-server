@@ -8,6 +8,11 @@ public class Request {
 
     public Request (BufferedReader in) throws IOException {
         String message = in.readLine();
+        System.out.println("NEW REQUEST: " + message);
+
+        if (message.equals("")) {
+            return;
+        }
 
         if (message.substring(0, 1).equals("/")) {
             int commandIndex = message.indexOf(' ');

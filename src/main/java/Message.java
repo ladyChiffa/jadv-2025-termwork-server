@@ -12,4 +12,9 @@ public class Message {
         this.message = message;
         this.dt = dt;
     }
+
+    @Override
+    public String toString() {
+        return id + "/" + dt + "/" + name + " /// " + message;
+    }
 }
