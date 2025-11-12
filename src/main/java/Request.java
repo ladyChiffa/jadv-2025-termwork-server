@@ -3,8 +3,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 
 public class Request {
-    public String command;
-    public String text;
+    protected String command;
+    protected String text;
 
     public Request (BufferedReader in) throws IOException {
         String message = in.readLine();

@@ -14,6 +14,48 @@ public class ClientChat {
         this.id = id;
     }
 
+    protected void processHello(ServerChat chatlog, LocalDateTime dt, Request request) {
+        if (name == null) {
+            chatlog.add(0, "server", dt, "К чату присоединился " + request.text);
+        }
+        else if (!name.equals(request.text)) {
+            chatlog.add(0,"server", dt, "Участник " + name + " сменил имя, теперь он " + request.text);
+        }
+        name = request.text;
+    }
+
+    protected void processExit(ServerChat chatlog, LocalDateTime dt, Request request) {
+        if (name == null) {
+            name = "anonymous#" + Thread.currentThread().getName();;
+            chatlog.add(0, "server", dt, "К чату присоединился " + name);
+        }
+        chatlog.add(0,"server", dt, "Из чата вышел " + name);
+    }
+
+    protected void processPoll(ServerChat chatlog, LocalDateTime dt, Request request, BufferedOutputStream out) throws IOException {
+        String newMessages = chatlog.getFromDt(lastRequestTime, id);
+        lastRequestTime = dt;
+        newMessages += "\n";
+        out.write((
+                newMessages
+        ).getBytes());
+        out.flush();
+    }
+    protected void processPollAll(ServerChat chatlog, LocalDateTime dt, Request request, BufferedOutputStream out) throws IOException {
+        String newMessages = chatlog.getFromDt();
+        out.write((
+                newMessages
+        ).getBytes());
+        out.flush();
+    }
+    protected void processMessage(ServerChat chatlog, LocalDateTime dt, Request request){
+        if (name == null) {
+            name = "anonymous#" + Thread.currentThread().getName();;
+            chatlog.add(0, "server", dt, "К чату присоединился " + name);
+        }
+        chatlog.add(id, name, dt, request.text);
+    }
+
     public void process (ServerChat chatlog, Socket socket) {
         try (
                 BufferedReader in  = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -26,7 +68,7 @@ public class ClientChat {
             ).getBytes());
             out.flush();
 
-            LocalDateTime dt_last = LocalDateTime.now();
+            lastRequestTime = LocalDateTime.now();
 
             while(true) {
                 LocalDateTime dt = LocalDateTime.now();
@@ -34,45 +76,17 @@ public class ClientChat {
 
                 if (request.command == null ) continue; // прислали пустую строку
 
-                System.out.println("CHAT перед командой");
-                System.out.println("DT PREV: " + dt_last);
-                System.out.println(chatlog.toString());
-
                 if (request.command.equals("/hello")) {
-                    if (name == null) {
-                        chatlog.add(0, "server", dt, "К чату присоединился " + request.text);
-                    }
-                    else if (!name.equals(request.text)) {
-                        chatlog.add(0,"server", dt, "Участник " + name + " сменил имя, теперь он " + request.text);
-                    }
-                    name = request.text;
+                    processHello(chatlog, dt, request);
                 } else if (request.command.equals("/exit")) {
-                    if (name == null) {
-                        name = "anonymous#" + Thread.currentThread().getName();;
-                        chatlog.add(0, "server", dt, "К чату присоединился " + name);
-                    }
-                    chatlog.add(0,"server", dt, "Из чата вышел " + name);
+                    processExit(chatlog, dt, request);
                     break;
                 } else if (request.command.equals("/poll")) {
-                    String newMessages = chatlog.getFromDt(dt_last, id);
-                    dt_last = dt;
-                    newMessages += "\n";
-                    out.write((
-                            newMessages
-                    ).getBytes());
-                    out.flush();
+                    processPoll(chatlog, dt, request, out);
                 } else if (request.command.equals("/pollall")) { // недокументированная команда)))
-                    String newMessages = chatlog.getFromDt();
-                    out.write((
-                            newMessages
-                    ).getBytes());
-                    out.flush();
+                    processPollAll(chatlog, dt, request, out);
                 } else {
-                    if (name == null) {
-                        name = "anonymous#" + Thread.currentThread().getName();;
-                        chatlog.add(0, "server", dt, "К чату присоединился " + name);
-                    }
-                    chatlog.add(id, name, dt, request.text);
+                    processMessage(chatlog, dt, request);
                 }
             }
         } catch (IOException e) {
